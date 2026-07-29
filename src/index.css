@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-coffee-50 text-coffee-900 dark:bg-coffee-950 dark:text-coffee-50 transition-colors;
+}

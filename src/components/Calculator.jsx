@@ -1,0 +1,402 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import useWakeLock from '../hooks/useWakeLock.js'
+import useCalibration from '../hooks/useCalibration.js'
+import playBeep from '../utils/sound.js'
+
+function formatGrams(value) {
+  return Number.isInteger(value) ? value : value.toFixed(1)
+}
+
+function parseTimeToSeconds(startTime) {
+  const [minutes, seconds] = startTime.split(':').map(Number)
+  return minutes * 60 + seconds
+}
+
+function formatElapsed(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+const WARNING_WINDOW_SECONDS = 5
+
+function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
+  const [people, setPeople] = useState(1)
+  const [mlPerPerson, setMlPerPerson] = useState(250)
+
+  const [bean, setBean] = useState('')
+  const [clicksByGrinder, setClicksByGrinder] = useState(() =>
+    Object.fromEntries(grinders.map((g) => [g.id, ''])),
+  )
+  const [justSaved, setJustSaved] = useState(false)
+
+  const { calibration, setCalibrationField } = useCalibration(recipe.id, recipe.grind)
+
+  const [isRunning, setIsRunning] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const startRef = useRef(null)
+  const warnedStepRef = useRef(null)
+  const transitionedStepRef = useRef(0)
+
+  useWakeLock(isRunning)
+
+  useEffect(() => {
+    if (!isRunning) return
+    const intervalId = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000))
+    }, 250)
+    return () => clearInterval(intervalId)
+  }, [isRunning])
+
+  const totalWater = useMemo(() => {
+    const p = Number(people) || 0
+    const ml = Number(mlPerPerson) || 0
+    return p * ml
+  }, [people, mlPerPerson])
+
+  const totalCoffee = useMemo(() => {
+    if (!recipe.base_ratio) return 0
+    return Math.round((totalWater / recipe.base_ratio) * 10) / 10
+  }, [totalWater, recipe.base_ratio])
+
+  const beanSuggestions = useMemo(() => [...new Set(profiles.map((p) => p.bean))].sort(), [profiles])
+
+  const matchingProfiles = useMemo(() => {
+    const trimmed = bean.trim().toLowerCase()
+    if (!trimmed) return []
+    return profiles.filter((p) => p.bean.trim().toLowerCase() === trimmed)
+  }, [profiles, bean])
+
+  const stepsWithSeconds = useMemo(
+    () => recipe.pours.map((pour) => ({ ...pour, seconds: parseTimeToSeconds(pour.start_time) })),
+    [recipe.pours],
+  )
+
+  const currentStepIndex = useMemo(() => {
+    let idx = 0
+    stepsWithSeconds.forEach((step, i) => {
+      if (elapsed >= step.seconds) idx = i
+    })
+    return idx
+  }, [stepsWithSeconds, elapsed])
+
+  const hasStarted = isRunning || elapsed > 0
+  const currentStep = hasStarted ? stepsWithSeconds[currentStepIndex] : null
+  const nextStep = stepsWithSeconds[currentStepIndex + 1]
+  const secondsToNext = nextStep ? nextStep.seconds - elapsed : null
+  const isWarning = isRunning && secondsToNext !== null && secondsToNext > 0 && secondsToNext <= WARNING_WINDOW_SECONDS
+
+  // Beep once when entering the warning window before the next pour.
+  useEffect(() => {
+    if (!isWarning || !nextStep) return
+    if (warnedStepRef.current === nextStep.step) return
+    warnedStepRef.current = nextStep.step
+    playBeep(880, 0.15)
+  }, [isWarning, nextStep])
+
+  // Beep once when actually transitioning into a new pour step.
+  useEffect(() => {
+    if (!isRunning) return
+    if (currentStepIndex !== transitionedStepRef.current) {
+      if (currentStepIndex > 0) playBeep(660, 0.3)
+      transitionedStepRef.current = currentStepIndex
+    }
+  }, [isRunning, currentStepIndex])
+
+  function handleStart() {
+    startRef.current = Date.now() - elapsed * 1000
+    setIsRunning(true)
+  }
+
+  function handlePause() {
+    setIsRunning(false)
+  }
+
+  function handleReset() {
+    setIsRunning(false)
+    setElapsed(0)
+    warnedStepRef.current = null
+    transitionedStepRef.current = 0
+  }
+
+  function handleLoadProfile() {
+    setClicksByGrinder((prev) => {
+      const next = { ...prev }
+      matchingProfiles.forEach((p) => {
+        next[p.grinderId] = String(p.clicks)
+      })
+      return next
+    })
+  }
+
+  function handleSaveGrindProfile() {
+    if (!bean.trim()) return
+    grinders.forEach((g) => {
+      const value = clicksByGrinder[g.id]
+      if (value !== '') saveProfile(bean, g.id, value)
+    })
+    setJustSaved(true)
+    setTimeout(() => setJustSaved(false), 2000)
+  }
+
+  return (
+    <div className="max-w-md mx-auto px-4 pb-10">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1 text-coffee-600 py-4 text-sm font-medium active:opacity-60 dark:text-coffee-400"
+      >
+        ← Volver a recetas
+      </button>
+
+      <header className="mb-4">
+        <h1 className="text-2xl font-bold text-coffee-900 dark:text-coffee-50">{recipe.method}</h1>
+        <p className="text-sm text-coffee-500 dark:text-coffee-400">por {recipe.author}</p>
+      </header>
+
+      {/* Inputs */}
+      <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">Personas</span>
+            <input
+              type="number"
+              min="1"
+              inputMode="numeric"
+              value={people}
+              onChange={(e) => setPeople(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-full rounded-lg border border-coffee-200 px-3 py-3 text-lg font-semibold text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
+            />
+          </label>
+
+          <label className="block">
+            <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">ml por persona</span>
+            <input
+              type="number"
+              min="1"
+              inputMode="numeric"
+              value={mlPerPerson}
+              onChange={(e) => setMlPerPerson(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-full rounded-lg border border-coffee-200 px-3 py-3 text-lg font-semibold text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
+            />
+          </label>
+        </div>
+      </section>
+
+      {/* Results */}
+      <section className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-coffee-800 text-white rounded-lg p-4">
+          <p className="text-xs text-coffee-200">Agua total</p>
+          <p className="text-2xl font-bold">{totalWater} ml</p>
+        </div>
+        <div className="bg-coffee-800 text-white rounded-lg p-4">
+          <p className="text-xs text-coffee-200">Café total</p>
+          <p className="text-2xl font-bold">{formatGrams(totalCoffee)} g</p>
+        </div>
+      </section>
+
+      {/* Timer */}
+      <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200">Cronómetro</h2>
+          {isRunning && (
+            <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              En vivo
+            </span>
+          )}
+        </div>
+
+        <p
+          className={`text-5xl font-bold tabular-nums text-center mb-1 transition-colors ${
+            isWarning ? 'text-amber-500' : 'text-coffee-900 dark:text-coffee-50'
+          }`}
+        >
+          {formatElapsed(elapsed)}
+        </p>
+        <p className="text-center text-sm text-coffee-500 dark:text-coffee-400 mb-4 h-5">
+          {hasStarted
+            ? `Fase actual: ${currentStep.name}${isWarning ? ` · siguiente en ${secondsToNext}s` : ''}`
+            : 'Presiona Start para comenzar'}
+        </p>
+
+        <div className="flex gap-2">
+          {!isRunning ? (
+            <button
+              onClick={handleStart}
+              className="flex-1 rounded-lg bg-coffee-800 text-white font-semibold py-3 active:opacity-80"
+            >
+              {elapsed > 0 ? 'Reanudar' : 'Start'}
+            </button>
+          ) : (
+            <button
+              onClick={handlePause}
+              className="flex-1 rounded-lg bg-coffee-200 text-coffee-900 font-semibold py-3 active:opacity-80 dark:bg-coffee-700 dark:text-coffee-50"
+            >
+              Pausar
+            </button>
+          )}
+          <button
+            onClick={handleReset}
+            className="rounded-lg border border-coffee-200 text-coffee-600 font-semibold py-3 px-4 active:opacity-70 dark:border-coffee-700 dark:text-coffee-400"
+          >
+            Reiniciar
+          </button>
+        </div>
+      </section>
+
+      {/* Recipe details */}
+      <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
+        <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-2">Detalles</h2>
+        <div className="flex flex-wrap gap-2 text-xs text-coffee-600 dark:text-coffee-300">
+          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">Ratio 1:{recipe.base_ratio}</span>
+          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">🌡️ {recipe.temperature_c}°C</span>
+          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">⚙️ Molienda {recipe.grind.description}</span>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-coffee-100 dark:border-coffee-800">
+          <h3 className="text-xs font-semibold text-coffee-600 dark:text-coffee-400 mb-2">
+            Registro de calibración
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">
+                Timemore X-Lite
+              </span>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="Clics"
+                value={calibration.timemore_x_lite_clicks}
+                onChange={(e) => setCalibrationField('timemore_x_lite_clicks', e.target.value)}
+                className="w-full rounded-lg border border-coffee-200 px-3 py-2 text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">
+                M3 Bomber R3 Pro
+              </span>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="Clics"
+                value={calibration.m3_bomber_r3_pro_clicks}
+                onChange={(e) => setCalibrationField('m3_bomber_r3_pro_clicks', e.target.value)}
+                className="w-full rounded-lg border border-coffee-200 px-3 py-2 text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
+              />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      {/* Grind manager quick entry */}
+      <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
+        <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-2">Molienda</h2>
+
+        <label className="block mb-3">
+          <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">Grano / Café</span>
+          <input
+            type="text"
+            list="calc-bean-suggestions"
+            placeholder="Ej. Finca El Paraíso"
+            value={bean}
+            onChange={(e) => setBean(e.target.value)}
+            className="w-full rounded-lg border border-coffee-200 px-3 py-2 text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
+          />
+          <datalist id="calc-bean-suggestions">
+            {beanSuggestions.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+        </label>
+
+        {matchingProfiles.length > 0 && (
+          <button
+            type="button"
+            onClick={handleLoadProfile}
+            className="w-full mb-3 rounded-lg border border-coffee-300 bg-coffee-50 text-coffee-700 text-sm font-medium py-2 active:opacity-70 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-200"
+          >
+            📥 Cargar perfil guardado de "{bean.trim()}"
+          </button>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          {grinders.map((g) => (
+            <label key={g.id} className="block">
+              <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">{g.name}</span>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="—"
+                value={clicksByGrinder[g.id]}
+                onChange={(e) =>
+                  setClicksByGrinder((prev) => ({ ...prev, [g.id]: e.target.value }))
+                }
+                className="w-full rounded-lg border border-coffee-200 px-3 py-2 text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
+              />
+            </label>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSaveGrindProfile}
+          disabled={!bean.trim()}
+          className="w-full mt-3 rounded-lg bg-coffee-800 text-white font-semibold py-3 active:opacity-80 disabled:opacity-40"
+        >
+          {justSaved ? '✓ Guardado' : 'Guardar perfil de molienda'}
+        </button>
+      </section>
+
+      {/* Pour guide */}
+      <section>
+        <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-2 px-1">Guía de vertidos</h2>
+        <ol className="space-y-3">
+          {stepsWithSeconds.map((pour, i) => {
+            const targetWeight = Math.round(totalWater * pour.target_weight_percentage)
+            const isActive = hasStarted && i === currentStepIndex
+            const isUpcoming = isWarning && nextStep && pour.step === nextStep.step
+
+            return (
+              <li
+                key={pour.step}
+                className={`rounded-lg border shadow-sm p-4 flex gap-3 transition-colors ${
+                  isUpcoming
+                    ? 'bg-amber-50 border-amber-300 animate-pulse dark:bg-amber-950 dark:border-amber-700'
+                    : isActive
+                      ? 'bg-coffee-800 border-coffee-800'
+                      : 'bg-white border-coffee-100 dark:bg-coffee-900 dark:border-coffee-800'
+                }`}
+              >
+                <div
+                  className={`shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-xs font-bold ${
+                    isActive ? 'bg-coffee-700 text-white' : 'bg-coffee-100 text-coffee-800 dark:bg-coffee-800 dark:text-coffee-100'
+                  }`}
+                >
+                  {pour.start_time}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className={`font-semibold ${isActive ? 'text-white' : 'text-coffee-900 dark:text-coffee-50'}`}>
+                      {pour.name}
+                    </h3>
+                    <span className={`text-sm font-bold ${isActive ? 'text-white' : 'text-coffee-700 dark:text-coffee-200'}`}>
+                      {targetWeight} g
+                    </span>
+                  </div>
+                  <p className={`text-sm mt-1 ${isActive ? 'text-coffee-100' : 'text-coffee-500 dark:text-coffee-400'}`}>
+                    {pour.description}
+                  </p>
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      </section>
+    </div>
+  )
+}
+
+export default Calculator
