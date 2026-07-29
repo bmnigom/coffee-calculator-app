@@ -290,6 +290,41 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
         </div>
       </section>
 
+      {/* Coffee bean info */}
+      {recipe.coffee_bean && (
+        <section className="bg-coffee-50 rounded-lg border border-coffee-100 p-4 mb-4 dark:bg-coffee-900/60 dark:border-coffee-800">
+          <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-3">
+            Información del grano
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[11px] text-coffee-500 dark:text-coffee-400">Tostador</p>
+              <p className="text-sm font-medium text-coffee-900 dark:text-coffee-50">
+                {recipe.coffee_bean.roaster}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-coffee-500 dark:text-coffee-400">Origen</p>
+              <p className="text-sm font-medium text-coffee-900 dark:text-coffee-50">
+                {recipe.coffee_bean.origin}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-coffee-500 dark:text-coffee-400">Proceso</p>
+              <p className="text-sm font-medium text-coffee-900 dark:text-coffee-50">
+                {recipe.coffee_bean.process}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-coffee-500 dark:text-coffee-400">Nivel de tueste</p>
+              <p className="text-sm font-medium text-coffee-900 dark:text-coffee-50">
+                {recipe.coffee_bean.roast_level}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Grind manager quick entry */}
       <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
         <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-2">Molienda</h2>

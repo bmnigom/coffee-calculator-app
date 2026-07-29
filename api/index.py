@@ -20,6 +20,13 @@ class Pour(BaseModel):
     description: str
 
 
+class CoffeeBean(BaseModel):
+    roaster: str
+    origin: str
+    process: str
+    roast_level: str
+
+
 class Recipe(BaseModel):
     id: str
     method: str
@@ -30,6 +37,7 @@ class Recipe(BaseModel):
     temperature_c: float
     grind: Grind
     pours: List[Pour]
+    coffee_bean: Optional[CoffeeBean] = None
 
 
 RECETAS = [
@@ -104,6 +112,80 @@ RECETAS = [
                 "start_time": "1:30",
                 "target_weight_percentage": 1.0,
                 "description": "Llenar hasta el total. Extraer hasta 2:30 ó 3:00.",
+            },
+        ],
+    },
+    {
+        "id": "kalita-wave-george-howell",
+        "method": "Kalita Wave (155/185)",
+        "author": "George Howell (Adaptada)",
+        "base_ratio": 15.0,
+        "base_coffee_g": 20,
+        "base_water_g": 300,
+        "temperature_c": 92,
+        "grind": {
+            "description": "Media-gruesa (como arena de mar)",
+            "timemore_x_lite_clicks": None,
+            "m3_bomber_r3_pro_clicks": None,
+        },
+        "pours": [
+            {
+                "step": 1,
+                "name": "Bloom",
+                "start_time": "0:00",
+                "target_weight_percentage": 0.15,
+                "description": "Verter suavemente del centro hacia afuera. Esperar 45s.",
+            },
+            {
+                "step": 2,
+                "name": "Vertido Principal",
+                "start_time": "0:45",
+                "target_weight_percentage": 0.50,
+                "description": "Verter en espiral, manteniendo el nivel del agua estable en el filtro.",
+            },
+            {
+                "step": 3,
+                "name": "Mantenimiento y Cierre",
+                "start_time": "1:30",
+                "target_weight_percentage": 1.0,
+                "description": "Completar el volumen en espiral y dejar drenar. Tiempo total aprox 2:45 a 3:15.",
+            },
+        ],
+    },
+    {
+        "id": "hario-pegasus-daily",
+        "method": "Hario Pegasus",
+        "author": "Hario Standard",
+        "base_ratio": 15.5,
+        "base_coffee_g": 16,
+        "base_water_g": 250,
+        "temperature_c": 93,
+        "grind": {
+            "description": "Media (ligeramente más fina que V60)",
+            "timemore_x_lite_clicks": None,
+            "m3_bomber_r3_pro_clicks": None,
+        },
+        "pours": [
+            {
+                "step": 1,
+                "name": "Bloom",
+                "start_time": "0:00",
+                "target_weight_percentage": 0.20,
+                "description": "Vertido rápido para saturar la cama de café. Esperar 30s.",
+            },
+            {
+                "step": 2,
+                "name": "Segundo Vertido",
+                "start_time": "0:30",
+                "target_weight_percentage": 0.60,
+                "description": "Llenar la tolva con movimientos circulares constantes.",
+            },
+            {
+                "step": 3,
+                "name": "Tercer Vertido",
+                "start_time": "1:15",
+                "target_weight_percentage": 1.0,
+                "description": "Verter el resto en el centro. Tiempo total aprox 2:30.",
             },
         ],
     },
