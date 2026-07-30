@@ -249,8 +249,16 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
         <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-2">Detalles</h2>
         <div className="flex flex-wrap gap-2 text-xs text-coffee-600 dark:text-coffee-300">
           <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">Ratio 1:{recipe.base_ratio}</span>
-          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">🌡️ {recipe.temperature_c}°C</span>
+          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">
+            🌡️ {recipe.temperature_c != null ? `${recipe.temperature_c}°C` : 'No especificada'}
+          </span>
           <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">⚙️ Molienda {recipe.grind.description}</span>
+          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">
+            Timemore X-Lite: {recipe.grind.timemore_x_lite_clicks ?? 'No registrado'}
+          </span>
+          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">
+            M3 Bomber R3 Pro: {recipe.grind.m3_bomber_r3_pro_clicks ?? 'No registrado'}
+          </span>
         </div>
 
         <div className="mt-3 pt-3 border-t border-coffee-100 dark:border-coffee-800">
@@ -393,6 +401,7 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
             const targetWeight = Math.round(totalWater * pour.target_weight_percentage)
             const isActive = hasStarted && i === currentStepIndex
             const isUpcoming = isWarning && nextStep && pour.step === nextStep.step
+            const isBypass = pour.name.includes('Bypass')
 
             return (
               <li
@@ -402,28 +411,47 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
                     ? 'bg-amber-50 border-amber-300 animate-pulse dark:bg-amber-950 dark:border-amber-700'
                     : isActive
                       ? 'bg-coffee-800 border-coffee-800'
-                      : 'bg-white border-coffee-100 dark:bg-coffee-900 dark:border-coffee-800'
+                      : isBypass
+                        ? 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800'
+                        : 'bg-white border-coffee-100 dark:bg-coffee-900 dark:border-coffee-800'
                 }`}
               >
                 <div
                   className={`shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-xs font-bold ${
-                    isActive ? 'bg-coffee-700 text-white' : 'bg-coffee-100 text-coffee-800 dark:bg-coffee-800 dark:text-coffee-100'
+                    isActive
+                      ? 'bg-coffee-700 text-white'
+                      : isBypass
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
+                        : 'bg-coffee-100 text-coffee-800 dark:bg-coffee-800 dark:text-coffee-100'
                   }`}
                 >
                   {pour.start_time}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h3 className={`font-semibold ${isActive ? 'text-white' : 'text-coffee-900 dark:text-coffee-50'}`}>
+                    <h3
+                      className={`font-semibold ${
+                        isActive ? 'text-white' : isBypass ? 'text-blue-800 dark:text-blue-200' : 'text-coffee-900 dark:text-coffee-50'
+                      }`}
+                    >
                       {pour.name}
                     </h3>
-                    <span className={`text-sm font-bold ${isActive ? 'text-white' : 'text-coffee-700 dark:text-coffee-200'}`}>
+                    <span
+                      className={`text-sm font-bold ${
+                        isActive ? 'text-white' : isBypass ? 'text-blue-700 dark:text-blue-200' : 'text-coffee-700 dark:text-coffee-200'
+                      }`}
+                    >
                       {targetWeight} g
                     </span>
                   </div>
-                  <p className={`text-sm mt-1 ${isActive ? 'text-coffee-100' : 'text-coffee-500 dark:text-coffee-400'}`}>
+                  <p className={`text-sm mt-1 ${isActive ? 'text-coffee-100' : isBypass ? 'text-blue-600 dark:text-blue-300' : 'text-coffee-500 dark:text-coffee-400'}`}>
                     {pour.description}
                   </p>
+                  {isBypass && (
+                    <p className="text-xs mt-2 font-medium text-blue-500 dark:text-blue-400">
+                      💡 Este paso se sirve directo en la taza/servidor, no sobre la báscula de extracción.
+                    </p>
+                  )}
                 </div>
               </li>
             )

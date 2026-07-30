@@ -25,7 +25,9 @@ function RecipeCard({ recipe, onSelect, onDelete }) {
         <div className="mt-4 flex flex-wrap gap-2 text-xs text-coffee-600 dark:text-coffee-300">
           <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">☕ {recipe.base_coffee_g}g</span>
           <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">💧 {recipe.base_water_g}ml</span>
-          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">🌡️ {recipe.temperature_c}°C</span>
+          <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">
+            🌡️ {recipe.temperature_c != null ? `${recipe.temperature_c}°C` : 'No especificada'}
+          </span>
           <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">⚙️ {recipe.grind.description}</span>
         </div>
       </button>
