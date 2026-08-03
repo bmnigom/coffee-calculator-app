@@ -1,5 +1,27 @@
 import RecipeCard from './RecipeCard.jsx'
 
+// Orden lógico de los grupos de métodos. `match` agrupa variantes de un mismo
+// método (p.ej. "Aeropress" y "Aeropress (Invertida)") bajo un mismo título.
+const METHOD_GROUPS = [
+  { label: 'V60', match: (method) => method === 'V60' },
+  { label: 'Aeropress', match: (method) => method.startsWith('Aeropress') },
+  { label: 'Hario Switch', match: (method) => method.startsWith('Hario Switch') || method.startsWith('Switch') },
+  { label: 'Kalita Wave', match: (method) => method.startsWith('Kalita') },
+  { label: 'Hario Pegasus', match: (method) => method.startsWith('Hario Pegasus') || method.startsWith('Pegasus') },
+]
+
+function groupRecipesByMethod(recipes) {
+  const groups = METHOD_GROUPS.map((g) => ({ ...g, recipes: [] }))
+  const other = { label: 'Otros métodos', recipes: [] }
+
+  recipes.forEach((recipe) => {
+    const group = groups.find((g) => g.match(recipe.method))
+    ;(group ?? other).recipes.push(recipe)
+  })
+
+  return [...groups, other].filter((g) => g.recipes.length > 0)
+}
+
 function Home({
   recipes,
   loadingRecipes,
@@ -39,14 +61,23 @@ function Home({
           Cargando recetas...
         </p>
       ) : (
-        <div className="space-y-3">
-          {recipes.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              onSelect={onSelectRecipe}
-              onDelete={recipe.isCustom ? () => onDeleteRecipe(recipe.id) : undefined}
-            />
+        <div className="space-y-6">
+          {groupRecipesByMethod(recipes).map((group) => (
+            <section key={group.label}>
+              <h2 className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-coffee-400 dark:text-coffee-500">
+                {group.label}
+              </h2>
+              <div className="space-y-3">
+                {group.recipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    onSelect={onSelectRecipe}
+                    onDelete={recipe.isCustom ? () => onDeleteRecipe(recipe.id) : undefined}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
