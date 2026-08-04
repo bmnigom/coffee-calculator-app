@@ -108,7 +108,7 @@ function RecipeForm({ onSave, onCancel }) {
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 space-y-3">
+        <section className="bg-white rounded-xl border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className={labelClass}>Método</span>
@@ -186,7 +186,7 @@ function RecipeForm({ onSave, onCancel }) {
           )}
         </section>
 
-        <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4">
+        <section className="bg-white rounded-xl border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4">
           <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-3">
             Pasos de vertido
           </h2>

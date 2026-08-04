@@ -1,9 +1,16 @@
+function lastPourTime(recipe) {
+  const last = recipe.pours?.[recipe.pours.length - 1]
+  return last?.start_time ?? null
+}
+
 function RecipeCard({ recipe, onSelect, onDelete }) {
+  const totalTime = lastPourTime(recipe)
+
   return (
     <div className="relative">
       <button
         onClick={() => onSelect(recipe)}
-        className="w-full text-left bg-white rounded-lg border border-coffee-100 shadow-sm p-5 active:scale-[0.98] transition-transform hover:shadow-md dark:bg-coffee-900 dark:border-coffee-800"
+        className="w-full text-left bg-white rounded-xl border border-coffee-100 shadow-sm p-5 active:scale-[0.98] transition-all hover:shadow-md hover:border-coffee-200 dark:bg-coffee-900 dark:border-coffee-800 dark:hover:border-coffee-700"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -29,6 +36,9 @@ function RecipeCard({ recipe, onSelect, onDelete }) {
             🌡️ {recipe.temperature_c != null ? `${recipe.temperature_c}°C` : 'No especificada'}
           </span>
           <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">⚙️ {recipe.grind.description}</span>
+          {totalTime && (
+            <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">⏱️ ~{totalTime}</span>
+          )}
         </div>
       </button>
 

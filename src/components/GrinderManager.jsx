@@ -58,7 +58,7 @@ function GrinderManager({ grinders, profiles, saveProfile, deleteProfile, onBack
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4 space-y-3"
+        className="bg-white rounded-xl border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4 space-y-3"
       >
         <label className="block">
           <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">Grano / Café</span>
@@ -133,7 +133,7 @@ function GrinderManager({ grinders, profiles, saveProfile, deleteProfile, onBack
         ) : (
           <div className="space-y-3">
             {groupedByBean.map(({ bean: beanName, entries }) => (
-              <div key={beanName} className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4">
+              <div key={beanName} className="bg-white rounded-xl border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4">
                 <h3 className="font-semibold text-coffee-900 dark:text-coffee-50 mb-2">{beanName}</h3>
                 <ul className="space-y-2">
                   {entries.map((entry) => (

@@ -37,6 +37,7 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
   const startRef = useRef(null)
   const warnedStepRef = useRef(null)
   const transitionedStepRef = useRef(0)
+  const stepRefs = useRef({})
 
   useWakeLock(isRunning)
 
@@ -85,6 +86,17 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
   const nextStep = stepsWithSeconds[currentStepIndex + 1]
   const secondsToNext = nextStep ? nextStep.seconds - elapsed : null
   const isWarning = isRunning && secondsToNext !== null && secondsToNext > 0 && secondsToNext <= WARNING_WINDOW_SECONDS
+
+  const totalBrewSeconds = stepsWithSeconds.length
+    ? stepsWithSeconds[stepsWithSeconds.length - 1].seconds
+    : 0
+  const progressPct = totalBrewSeconds > 0 ? Math.min(100, (elapsed / totalBrewSeconds) * 100) : 0
+
+  // Keep the active pour step in view while the timer runs.
+  useEffect(() => {
+    if (!isRunning || !currentStep) return
+    stepRefs.current[currentStep.step]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [isRunning, currentStepIndex])
 
   // Beep once when entering the warning window before the next pour.
   useEffect(() => {
@@ -154,7 +166,7 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
       </header>
 
       {/* Inputs */}
-      <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
+      <section className="bg-white rounded-xl border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">Personas</span>
@@ -184,68 +196,18 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
 
       {/* Results */}
       <section className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-coffee-800 text-white rounded-lg p-4">
+        <div className="bg-coffee-800 text-white rounded-xl p-4 shadow-sm">
           <p className="text-xs text-coffee-200">Agua total</p>
           <p className="text-2xl font-bold">{totalWater} ml</p>
         </div>
-        <div className="bg-coffee-800 text-white rounded-lg p-4">
+        <div className="bg-coffee-800 text-white rounded-xl p-4 shadow-sm">
           <p className="text-xs text-coffee-200">Café total</p>
           <p className="text-2xl font-bold">{formatGrams(totalCoffee)} g</p>
         </div>
       </section>
 
-      {/* Timer */}
-      <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200">Cronómetro</h2>
-          {isRunning && (
-            <span className="flex items-center gap-1 text-xs font-medium text-green-600">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              En vivo
-            </span>
-          )}
-        </div>
-
-        <p
-          className={`text-5xl font-bold tabular-nums text-center mb-1 transition-colors ${
-            isWarning ? 'text-amber-500' : 'text-coffee-900 dark:text-coffee-50'
-          }`}
-        >
-          {formatElapsed(elapsed)}
-        </p>
-        <p className="text-center text-sm text-coffee-500 dark:text-coffee-400 mb-4 h-5">
-          {hasStarted
-            ? `Fase actual: ${currentStep.name}${isWarning ? ` · siguiente en ${secondsToNext}s` : ''}`
-            : 'Presiona Start para comenzar'}
-        </p>
-
-        <div className="flex gap-2">
-          {!isRunning ? (
-            <button
-              onClick={handleStart}
-              className="flex-1 rounded-lg bg-coffee-800 text-white font-semibold py-3 active:opacity-80"
-            >
-              {elapsed > 0 ? 'Reanudar' : 'Start'}
-            </button>
-          ) : (
-            <button
-              onClick={handlePause}
-              className="flex-1 rounded-lg bg-coffee-200 text-coffee-900 font-semibold py-3 active:opacity-80 dark:bg-coffee-700 dark:text-coffee-50"
-            >
-              Pausar
-            </button>
-          )}
-          <button
-            onClick={handleReset}
-            className="rounded-lg border border-coffee-200 text-coffee-600 font-semibold py-3 px-4 active:opacity-70 dark:border-coffee-700 dark:text-coffee-400"
-          >
-            Reiniciar
-          </button>
-        </div>
-      </section>
-
       {/* Recipe details */}
-      <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
+      <section className="bg-white rounded-xl border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
         <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-2">Detalles</h2>
         <div className="flex flex-wrap gap-2 text-xs text-coffee-600 dark:text-coffee-300">
           <span className="rounded-md bg-coffee-50 px-2 py-1 dark:bg-coffee-800">Ratio 1:{recipe.base_ratio}</span>
@@ -300,7 +262,7 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
 
       {/* Coffee bean info */}
       {recipe.coffee_bean && (
-        <section className="bg-coffee-50 rounded-lg border border-coffee-100 p-4 mb-4 dark:bg-coffee-900/60 dark:border-coffee-800">
+        <section className="bg-coffee-50 rounded-xl border border-coffee-100 p-4 mb-4 dark:bg-coffee-900/60 dark:border-coffee-800">
           <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-3">
             Información del grano
           </h2>
@@ -334,7 +296,7 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
       )}
 
       {/* Grind manager quick entry */}
-      <section className="bg-white rounded-lg border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
+      <section className="bg-white rounded-xl border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-6">
         <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-2">Molienda</h2>
 
         <label className="block mb-3">
@@ -393,8 +355,76 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
         </button>
       </section>
 
+      {/* Timer — sticky so it stays visible while scrolling through the pour guide below */}
+      <div className="sticky top-0 z-20 -mx-4 px-4 pb-3 pt-2 bg-coffee-50/95 dark:bg-coffee-950/95 backdrop-blur supports-[backdrop-filter]:bg-coffee-50/90 dark:supports-[backdrop-filter]:bg-coffee-950/90">
+        <section className="bg-white rounded-xl border border-coffee-100 shadow-md dark:bg-coffee-900 dark:border-coffee-800 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200">Cronómetro</h2>
+            <div className="flex items-center gap-3">
+              {totalBrewSeconds > 0 && (
+                <span className="text-xs text-coffee-400 dark:text-coffee-500">
+                  Total ~{formatElapsed(totalBrewSeconds)}
+                </span>
+              )}
+              {isRunning && (
+                <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  En vivo
+                </span>
+              )}
+            </div>
+          </div>
+
+          <p
+            className={`text-5xl font-bold tabular-nums text-center mb-1 transition-colors ${
+              isWarning ? 'text-amber-500' : 'text-coffee-900 dark:text-coffee-50'
+            }`}
+          >
+            {formatElapsed(elapsed)}
+          </p>
+          <p className="text-center text-sm text-coffee-500 dark:text-coffee-400 mb-2 h-5">
+            {hasStarted
+              ? `Fase actual: ${currentStep.name}${isWarning ? ` · siguiente en ${secondsToNext}s` : ''}`
+              : 'Presiona Start para comenzar'}
+          </p>
+
+          <div className="h-1.5 w-full rounded-full bg-coffee-100 dark:bg-coffee-800 mb-4 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                isWarning ? 'bg-amber-500' : 'bg-coffee-700 dark:bg-coffee-300'
+              }`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            {!isRunning ? (
+              <button
+                onClick={handleStart}
+                className="flex-1 rounded-lg bg-coffee-800 text-white font-semibold py-3 active:opacity-80 hover:bg-coffee-700 transition-colors"
+              >
+                {elapsed > 0 ? 'Reanudar' : 'Start'}
+              </button>
+            ) : (
+              <button
+                onClick={handlePause}
+                className="flex-1 rounded-lg bg-coffee-200 text-coffee-900 font-semibold py-3 active:opacity-80 dark:bg-coffee-700 dark:text-coffee-50"
+              >
+                Pausar
+              </button>
+            )}
+            <button
+              onClick={handleReset}
+              className="rounded-lg border border-coffee-200 text-coffee-600 font-semibold py-3 px-4 active:opacity-70 dark:border-coffee-700 dark:text-coffee-400"
+            >
+              Reiniciar
+            </button>
+          </div>
+        </section>
+      </div>
+
       {/* Pour guide */}
-      <section>
+      <section className="mt-4">
         <h2 className="text-sm font-semibold text-coffee-700 dark:text-coffee-200 mb-2 px-1">Guía de vertidos</h2>
         <ol className="space-y-3">
           {stepsWithSeconds.map((pour, i) => {
@@ -406,11 +436,14 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
             return (
               <li
                 key={pour.step}
-                className={`rounded-lg border shadow-sm p-4 flex gap-3 transition-colors ${
+                ref={(el) => {
+                  stepRefs.current[pour.step] = el
+                }}
+                className={`scroll-mt-52 rounded-xl border shadow-sm p-4 flex gap-3 transition-colors ${
                   isUpcoming
                     ? 'bg-amber-50 border-amber-300 animate-pulse dark:bg-amber-950 dark:border-amber-700'
                     : isActive
-                      ? 'bg-coffee-800 border-coffee-800'
+                      ? 'bg-coffee-800 border-coffee-800 shadow-lg ring-2 ring-coffee-300 dark:ring-coffee-600'
                       : isBypass
                         ? 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800'
                         : 'bg-white border-coffee-100 dark:bg-coffee-900 dark:border-coffee-800'
