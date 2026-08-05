@@ -20,9 +20,15 @@ function formatElapsed(totalSeconds) {
 
 const WARNING_WINDOW_SECONDS = 5
 
+// El café molido retiene agua y no la deja pasar a la taza; ~20% es un
+// promedio razonable para la mayoría de métodos de goteo/inmersión.
+const ABSORPTION_RATE = 0.2
+
 function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
   const [people, setPeople] = useState(1)
   const [mlPerPerson, setMlPerPerson] = useState(250)
+  const [calcMode, setCalcMode] = useState('volume') // 'volume' | 'coffee'
+  const [gramsPerPerson, setGramsPerPerson] = useState(15)
 
   const [bean, setBean] = useState('')
   const [clicksByGrinder, setClicksByGrinder] = useState(() =>
@@ -49,16 +55,31 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
     return () => clearInterval(intervalId)
   }, [isRunning])
 
+  const totalCoffee = useMemo(() => {
+    const p = Number(people) || 0
+    if (calcMode === 'coffee') {
+      const g = Number(gramsPerPerson) || 0
+      return Math.round(p * g * 10) / 10
+    }
+    if (!recipe.base_ratio) return 0
+    const ml = Number(mlPerPerson) || 0
+    return Math.round(((p * ml) / recipe.base_ratio) * 10) / 10
+  }, [calcMode, people, mlPerPerson, gramsPerPerson, recipe.base_ratio])
+
   const totalWater = useMemo(() => {
+    if (calcMode === 'coffee') {
+      return Math.round(totalCoffee * (recipe.base_ratio || 0))
+    }
     const p = Number(people) || 0
     const ml = Number(mlPerPerson) || 0
     return p * ml
-  }, [people, mlPerPerson])
+  }, [calcMode, totalCoffee, recipe.base_ratio, people, mlPerPerson])
 
-  const totalCoffee = useMemo(() => {
-    if (!recipe.base_ratio) return 0
-    return Math.round((totalWater / recipe.base_ratio) * 10) / 10
-  }, [totalWater, recipe.base_ratio])
+  // El agua que realmente llega a la taza, descontando lo que retiene el café molido.
+  const finalVolume = useMemo(
+    () => Math.round(totalWater * (1 - ABSORPTION_RATE)),
+    [totalWater],
+  )
 
   const beanSuggestions = useMemo(() => [...new Set(profiles.map((p) => p.bean))].sort(), [profiles])
 
@@ -167,6 +188,31 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
 
       {/* Inputs */}
       <section className="bg-white rounded-xl border border-coffee-100 shadow-sm dark:bg-coffee-900 dark:border-coffee-800 p-4 mb-4">
+        <div className="grid grid-cols-2 gap-1 mb-3 rounded-lg bg-coffee-50 p-1 dark:bg-coffee-800">
+          <button
+            type="button"
+            onClick={() => setCalcMode('volume')}
+            className={`rounded-md py-2 text-xs font-semibold transition-colors ${
+              calcMode === 'volume'
+                ? 'bg-coffee-800 text-white shadow-sm dark:bg-coffee-600'
+                : 'text-coffee-600 dark:text-coffee-300'
+            }`}
+          >
+            Por volumen
+          </button>
+          <button
+            type="button"
+            onClick={() => setCalcMode('coffee')}
+            className={`rounded-md py-2 text-xs font-semibold transition-colors ${
+              calcMode === 'coffee'
+                ? 'bg-coffee-800 text-white shadow-sm dark:bg-coffee-600'
+                : 'text-coffee-600 dark:text-coffee-300'
+            }`}
+          >
+            Por café
+          </button>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">Personas</span>
@@ -180,30 +226,53 @@ function Calculator({ recipe, onBack, grinders, profiles, saveProfile }) {
             />
           </label>
 
-          <label className="block">
-            <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">ml por persona</span>
-            <input
-              type="number"
-              min="1"
-              inputMode="numeric"
-              value={mlPerPerson}
-              onChange={(e) => setMlPerPerson(e.target.value === '' ? '' : Number(e.target.value))}
-              className="w-full rounded-lg border border-coffee-200 px-3 py-3 text-lg font-semibold text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
-            />
-          </label>
+          {calcMode === 'volume' ? (
+            <label className="block">
+              <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">ml por persona</span>
+              <input
+                type="number"
+                min="1"
+                inputMode="numeric"
+                value={mlPerPerson}
+                onChange={(e) => setMlPerPerson(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full rounded-lg border border-coffee-200 px-3 py-3 text-lg font-semibold text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
+              />
+            </label>
+          ) : (
+            <label className="block">
+              <span className="block text-xs font-medium text-coffee-600 dark:text-coffee-400 mb-1">g de café por persona</span>
+              <input
+                type="number"
+                min="1"
+                step="0.5"
+                inputMode="decimal"
+                value={gramsPerPerson}
+                onChange={(e) => setGramsPerPerson(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full rounded-lg border border-coffee-200 px-3 py-3 text-lg font-semibold text-coffee-900 focus:outline-none focus:ring-2 focus:ring-coffee-400 dark:border-coffee-700 dark:bg-coffee-800 dark:text-coffee-50"
+              />
+            </label>
+          )}
         </div>
       </section>
 
       {/* Results */}
-      <section className="grid grid-cols-2 gap-3 mb-4">
+      <section className="grid grid-cols-2 gap-3 mb-3">
         <div className="bg-coffee-800 text-white rounded-xl p-4 shadow-sm">
-          <p className="text-xs text-coffee-200">Agua total</p>
+          <p className="text-xs text-coffee-200">Agua a verter</p>
           <p className="text-2xl font-bold">{totalWater} ml</p>
         </div>
         <div className="bg-coffee-800 text-white rounded-xl p-4 shadow-sm">
           <p className="text-xs text-coffee-200">Café total</p>
           <p className="text-2xl font-bold">{formatGrams(totalCoffee)} g</p>
         </div>
+      </section>
+
+      <section className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 dark:bg-amber-950/40 dark:border-amber-800">
+        <p className="text-xs text-amber-700 dark:text-amber-300">Volumen final aprox. en la taza</p>
+        <p className="text-2xl font-bold text-amber-900 dark:text-amber-100">{finalVolume} ml</p>
+        <p className="text-[11px] mt-1 text-amber-600 dark:text-amber-400">
+          El café molido retiene ~{Math.round(ABSORPTION_RATE * 100)}% del agua vertida
+        </p>
       </section>
 
       {/* Recipe details */}
