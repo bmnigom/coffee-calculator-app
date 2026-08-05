@@ -611,6 +611,96 @@ RECETAS = [
             },
         ],
     },
+    # --- MHW-3BOMBER METEORITE ---
+    {
+        "id": "meteorite-pulsos",
+        "method": "MHW-3BOMBER Meteorite",
+        "author": "Receta de Pulsos (Fondo Plano)",
+        "base_ratio": 15.6,
+        "base_coffee_g": 16,
+        "base_water_g": 250,
+        "temperature_c": 93,
+        "grind": {
+            "description": "Media (como arena de mar)",
+            "timemore_x_lite_clicks": None,
+            "m3_bomber_r3_pro_clicks": None,
+        },
+        "pours": [
+            {
+                "step": 1,
+                "name": "Bloom",
+                "start_time": "0:00",
+                "target_weight_percentage": 0.20,
+                "description": "Verter 50g de agua. Dar un giro suave al dripper para asentar la cama plana. Esperar 35s.",
+            },
+            {
+                "step": 2,
+                "name": "Segundo Vertido",
+                "start_time": "0:35",
+                "target_weight_percentage": 0.48,
+                "description": "Verter en espiral lenta hasta los 120g. Mantener el flujo constante.",
+            },
+            {
+                "step": 3,
+                "name": "Tercer Vertido",
+                "start_time": "1:10",
+                "target_weight_percentage": 0.76,
+                "description": "Verter en espiral hasta los 190g.",
+            },
+            {
+                "step": 4,
+                "name": "Vertido Final",
+                "start_time": "1:45",
+                "target_weight_percentage": 1.0,
+                "description": "Completar hasta 250g. Dejar drenar (el tiempo total debería rondar los 2:30 a 2:45).",
+            },
+        ],
+    },
+    # --- CLEVER DRIPPER ---
+    {
+        "id": "clever-dripper-agua-primero",
+        "method": "Clever Dripper",
+        "author": "Agua Primero (Hoffmann)",
+        "base_ratio": 15.0,
+        "base_coffee_g": 20,
+        "base_water_g": 300,
+        "temperature_c": 95,
+        "grind": {
+            "description": "Media-fina",
+            "timemore_x_lite_clicks": None,
+            "m3_bomber_r3_pro_clicks": None,
+        },
+        "pours": [
+            {
+                "step": 1,
+                "name": "Agua y Café",
+                "start_time": "0:00",
+                "target_weight_percentage": 1.0,
+                "description": "Agregar toda el agua primero (300g). Luego añadir el café encima y hundirlo suavemente con una cuchara para humedecer todo.",
+            },
+            {
+                "step": 2,
+                "name": "Inmersión",
+                "start_time": "0:30",
+                "target_weight_percentage": 1.0,
+                "description": "Tapar el Clever Dripper y dejar reposar sin tocar.",
+            },
+            {
+                "step": 3,
+                "name": "Decantación",
+                "start_time": "2:00",
+                "target_weight_percentage": 1.0,
+                "description": "Romper suavemente la costra superficial. Dar un giro ligero al dripper y esperar 30 segundos para que las partículas finas decanten al fondo.",
+            },
+            {
+                "step": 4,
+                "name": "Drenaje",
+                "start_time": "2:30",
+                "target_weight_percentage": 1.0,
+                "description": "Colocar el Clever sobre el servidor. El drenaje debería tomar alrededor de 45 a 60 segundos.",
+            },
+        ],
+    },
 ]
 
 
